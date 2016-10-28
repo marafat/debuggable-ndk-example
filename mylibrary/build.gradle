@@ -1,0 +1,86 @@
+apply plugin: 'com.android.library'
+
+/**
+ * Check build.gradle for app module for more explanations
+ */
+
+android {
+    /**
+     * To solve the bug reported at: https://goo.gl/pAZFtV
+     * where buildType is not propagated properly from app module
+     * down to library module.
+     * The following line will publish all variants of the lib
+     * and it should also be accompanied with changing
+     * the compile command under dependencies{} in the app module
+     * to multiple lines, one per variant. <variant>Compile
+     */
+    publishNonDefault true
+
+    compileSdkVersion 24
+    buildToolsVersion "24.0.2"
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 24
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            ndkBuild {
+                targets 'my-ndk-module'
+
+                /**
+                 * We need to explicitly point to the Application.mk file from the submodule because
+                 * it lives in a different dir than Android.mk.
+                 */
+                arguments 'NDK_APPLICATION_MK=../app/Application.mk'
+            }
+        }
+
+        ndk {
+            // Specifies the ABI configurations of your native
+            // We need to specify this closure in both Gradle files (app, myLibrary)
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+        }
+
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+            externalNativeBuild {
+                ndkBuild {
+                    cFlags "-O3"
+                }
+            }
+        }
+
+        debug {
+            jniDebuggable true   // couldn't verify that it has a direct effect when added
+            externalNativeBuild {
+                ndkBuild {
+                    cFlags "-O0"
+                }
+            }
+        }
+    }
+
+
+    externalNativeBuild {
+        ndkBuild {
+            path 'src/main/jni/Android.mk'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:24.2.1'
+    testCompile 'junit:junit:4.12'
+}

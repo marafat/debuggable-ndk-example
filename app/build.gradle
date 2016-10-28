@@ -1,0 +1,91 @@
+apply plugin: 'com.android.application'
+
+/**
+ * For reference, http://google.github.io/android-gradle-dsl/
+ */
+
+android {
+    compileSdkVersion 24
+    buildToolsVersion "24.0.2"
+    defaultConfig {
+        applicationId "com.example.debuggablendkexample"
+        minSdkVersion 21
+        targetSdkVersion 24
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        /**
+         * This is where we can pass arguments to ndk-build command
+         * and specify compiler flags that shuold be used with
+         * every build variant.
+         */
+        externalNativeBuild {
+            ndkBuild {
+                // nothing to add here. Check build.gradle of the submodule.
+            }
+        }
+
+        /**
+         * Although specified in Application.mk file. abiFilters needs to be
+         * set in gradle as follows.
+         */
+        ndk {
+            // Specifies the ABI configurations of your native
+            // We need to specify this closure in both Gradle files (app, myLibrary)
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+        }
+    }
+
+    /**
+     * The follwoing show case how you can pass compiler flags to the external native
+     * build command.
+     */
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+            externalNativeBuild {
+                ndkBuild {
+                    cFlags "-O3"
+                }
+            }
+        }
+
+        debug {
+            jniDebuggable true   // couldn't verify that it has a direct effect when added
+            externalNativeBuild {
+                ndkBuild {
+                    cFlags "-O0"
+                }
+            }
+        }
+    }
+
+    /**
+     * The following closure is the one that tells gradle that there is
+     * an NDK module attached to the project.
+     * Gradle assumes that the path to Application.mk file is the same as
+     * Android.mk. (This will not be true for submodules, and we need to specify
+     * the path to Application.mk as an ndk-build command argument in the build.gradle
+     * of the submodule)
+     */
+    externalNativeBuild {
+        ndkBuild {
+            path 'Android.mk'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:24.2.1'
+    testCompile 'junit:junit:4.12'
+
+    releaseCompile project(path: ':mylibrary', configuration: 'release')
+    debugCompile project(path: ':mylibrary', configuration: 'debug')
+}
